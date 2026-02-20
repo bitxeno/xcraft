@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use crate::workspace;
 
-pub fn cmd_detect() -> Result<()> {
+pub fn cmd_workspaces() -> Result<()> {
     let cwd = std::env::current_dir()?;
     let workspaces = workspace::detect_workspaces(&cwd);
     if workspaces.is_empty() {

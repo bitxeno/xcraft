@@ -21,8 +21,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Detect available workspaces (.xcworkspace / Package.swift)
-    Detect,
+    /// List available workspaces (.xcworkspace / Package.swift)
+    Workspaces,
 
     /// List schemes for a workspace
     Schemes {
@@ -52,7 +52,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Detect => cmd::cmd_detect(),
+        Commands::Workspaces => cmd::cmd_workspaces(),
         Commands::Schemes { workspace } => cmd::cmd_schemes(workspace),
         Commands::Configs { workspace } => cmd::cmd_configs(workspace),
         Commands::Destinations => cmd::cmd_destinations(),

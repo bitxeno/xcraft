@@ -16,9 +16,11 @@ CLI equivalent of the SweetPad VSCode extension for building and running Xcode p
 
 ## Project Structure
 
-- `src/main.rs` — CLI entry point, clap subcommands (`workspaces`, `schemes`, `configs`, `destinations`, `build`, `launch`)
+- `src/main.rs` — CLI entry point, clap subcommands (`workspaces`, `schemes`, `configs`, `destinations`, `configure`, `reset`, `build`, `launch`)
 - `src/cmd/` — subcommand implementations
-  - `build.rs` — shared `BuildArgs` + resolve/cache/build logic, `build` subcommand
+  - `build.rs` — shared `ResolveArgs` / `BuildArgs`, `resolve_and_cache` (resolve + save to cache), `resolve_and_build` (resolve + build), `build` subcommand
+  - `configure.rs` — `configure` subcommand (interactive re-prompt with cached defaults, no build)
+  - `reset.rs` — `reset` subcommand (clear cached selections)
   - `launch.rs` — `launch` subcommand (flattens `BuildArgs`, adds launch-specific options)
   - `workspaces.rs`, `schemes.rs`, `configs.rs`, `destinations.rs` — listing subcommands
 - `src/workspace.rs` — workspace detection and resolution (depth-4 scan for `.xcworkspace` / `Package.swift`)

@@ -40,4 +40,15 @@ impl CachedState {
     pub fn root() -> Result<PathBuf> {
         Ok(std::env::current_dir()?)
     }
+
+    /// Remove the cache file. Returns `Ok(true)` if the file was removed,
+    /// `Ok(false)` if it didn't exist.
+    pub fn reset(root: &Path) -> Result<bool> {
+        let path = root.join(CACHE_DIR).join(CACHE_FILE);
+        match std::fs::remove_file(&path) {
+            Ok(()) => Ok(true),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+            Err(e) => Err(e.into()),
+        }
+    }
 }

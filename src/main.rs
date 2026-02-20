@@ -44,6 +44,9 @@ enum Commands {
     /// Interactively select and cache workspace, scheme, configuration, and destination
     Configure(cmd::build::ResolveArgs),
 
+    /// Clear cached selections
+    Reset,
+
     /// Build the project without launching
     Build(cmd::build::BuildArgs),
 
@@ -60,6 +63,7 @@ fn main() -> Result<()> {
         Commands::Configs { workspace } => cmd::cmd_configs(workspace),
         Commands::Destinations => cmd::cmd_destinations(),
         Commands::Configure(args) => cmd::cmd_configure(args),
+        Commands::Reset => cmd::cmd_reset(),
         Commands::Build(args) => cmd::cmd_build(args),
         Commands::Launch(args) => cmd::cmd_launch(args),
     }

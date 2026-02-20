@@ -16,7 +16,11 @@ CLI equivalent of the SweetPad VSCode extension for building and running Xcode p
 
 ## Project Structure
 
-- `src/main.rs` — CLI entry point, clap subcommands (`detect`, `schemes`, `configs`, `destinations`, `launch`)
+- `src/main.rs` — CLI entry point, clap subcommands (`detect`, `schemes`, `configs`, `destinations`, `build`, `launch`)
+- `src/cmd/` — subcommand implementations
+  - `build.rs` — shared `BuildArgs` + resolve/cache/build logic, `build` subcommand
+  - `launch.rs` — `launch` subcommand (flattens `BuildArgs`, adds launch-specific options)
+  - `detect.rs`, `schemes.rs`, `configs.rs`, `destinations.rs` — other subcommands
 - `src/workspace.rs` — workspace detection and resolution (depth-4 scan for `.xcworkspace` / `Package.swift`)
 - `src/scheme.rs` — scheme and configuration listing/resolution (SPM via `swift package dump-package`, Xcode via `xcodebuild -list`)
 - `src/destination.rs` — destination listing (simulators via `simctl`, physical devices via `devicectl`, macOS)
@@ -35,4 +39,6 @@ cargo run -- launch
 
 ## Development Workflow
 
-After finishing a task, run `cargo fmt` and `cargo clippy` to ensure formatting and lint compliance.
+After finishing a task:
+- Run `cargo fmt` and `cargo clippy` to ensure formatting and lint compliance
+- Update `CLAUDE.md` to reflect changes on project structure, if necessary

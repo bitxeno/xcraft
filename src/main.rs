@@ -41,6 +41,9 @@ enum Commands {
     /// List available destinations (simulators, devices, macOS)
     Destinations,
 
+    /// Build the project without launching
+    Build(cmd::build::BuildArgs),
+
     /// Build and run (equivalent to SweetPad's Build & Run Launch)
     Launch(cmd::launch::LaunchArgs),
 }
@@ -53,6 +56,7 @@ fn main() -> Result<()> {
         Commands::Schemes { workspace } => cmd::cmd_schemes(workspace),
         Commands::Configs { workspace } => cmd::cmd_configs(workspace),
         Commands::Destinations => cmd::cmd_destinations(),
+        Commands::Build(args) => cmd::cmd_build(args),
         Commands::Launch(args) => cmd::cmd_launch(args),
     }
 }

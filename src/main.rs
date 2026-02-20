@@ -13,7 +13,12 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "xcli", about = "CLI for building & running Xcode projects")]
+#[command(
+    name = "xcli",
+    version,
+    author = "Bugen Zhao",
+    about = "CLI for building & running Xcode projects"
+)]
 struct Cli {
     /// Enable verbose output (print executed commands)
     #[arg(long, short, global = true)]

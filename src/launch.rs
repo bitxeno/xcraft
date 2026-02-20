@@ -19,7 +19,7 @@ pub fn launch(opts: &LaunchOptions) -> Result<()> {
     match opts.dest {
         Destination::MacOS { .. } => launch_macos(opts),
         Destination::Simulator { udid, .. } => launch_simulator(udid, opts),
-        Destination::Device { udid, .. } => launch_device(udid, opts),
+        Destination::Device { identifier, .. } => launch_device(identifier, opts),
     }
 }
 

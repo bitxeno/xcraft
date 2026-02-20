@@ -18,7 +18,10 @@ pub enum Destination {
         os: String,
     },
     Device {
+        /// Traditional UDID (for xcodebuild -destination).
         udid: String,
+        /// CoreDevice identifier (for devicectl commands).
+        identifier: String,
         name: String,
         device_type: String,
     },
@@ -197,6 +200,7 @@ struct DeviceProperties {
 #[serde(rename_all = "camelCase")]
 struct HardwareProperties {
     device_type: Option<String>,
+    udid: Option<String>,
 }
 
 fn list_devices() -> Result<Vec<Destination>> {
@@ -222,13 +226,20 @@ fn list_devices() -> Result<Vec<Destination>> {
         .result
         .devices
         .into_iter()
-        .map(|d| Destination::Device {
-            udid: d.identifier,
-            name: d.device_properties.name,
-            device_type: d
+        .map(|d| {
+            let traditional_udid = d
                 .hardware_properties
-                .device_type
-                .unwrap_or_else(|| "Unknown".into()),
+                .udid
+                .unwrap_or_else(|| d.identifier.clone());
+            Destination::Device {
+                udid: traditional_udid,
+                identifier: d.identifier,
+                name: d.device_properties.name,
+                device_type: d
+                    .hardware_properties
+                    .device_type
+                    .unwrap_or_else(|| "Unknown".into()),
+            }
         })
         .collect();
     Ok(results)
@@ -272,6 +283,7 @@ fn parse_destination_spec(spec: &str) -> Result<Destination> {
     if let Some(udid) = spec.strip_prefix("device:") {
         return Ok(Destination::Device {
             udid: udid.to_string(),
+            identifier: udid.to_string(),
             name: String::new(),
             device_type: String::new(),
         });

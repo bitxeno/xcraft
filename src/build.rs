@@ -24,6 +24,7 @@ pub fn get_build_settings(
     scheme: &str,
     configuration: &str,
     sdk: Option<&str>,
+    destination_raw: Option<&str>,
     derived_data: Option<&str>,
 ) -> Result<Vec<BuildSettingsEntry>> {
     let mut cmd = Command::new("xcodebuild");
@@ -36,6 +37,9 @@ pub fn get_build_settings(
     ]);
     if let Some(sdk) = sdk {
         cmd.args(["-sdk", sdk]);
+    }
+    if let Some(dest) = destination_raw {
+        cmd.args(["-destination", dest]);
     }
     if let Some(dd) = derived_data {
         cmd.args(["-derivedDataPath", dd]);
@@ -78,7 +82,9 @@ pub fn get_launch_info(
     derived_data: Option<&str>,
 ) -> Result<LaunchInfo> {
     let sdk = dest.sdk();
-    let entries = get_build_settings(ws, scheme, configuration, sdk, derived_data)?;
+    let dest_str = dest.xcodebuild_destination_string(false);
+    let dest_arg = if sdk.is_some() { None } else { Some(dest_str.as_str()) };
+    let entries = get_build_settings(ws, scheme, configuration, sdk, dest_arg, derived_data)?;
     let entry = entries
         .first()
         .context("no build settings returned by xcodebuild")?;

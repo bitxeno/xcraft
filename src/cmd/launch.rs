@@ -62,6 +62,10 @@ pub struct LaunchArgs {
     /// Launch environment KEY=VALUE (repeatable)
     #[arg(long = "env", value_parser = parse_key_val)]
     launch_env: Vec<(String, String)>,
+
+    /// Only install the app without launching it (simulator/device only)
+    #[arg(long)]
+    install_only: bool,
 }
 
 fn parse_key_val(s: &str) -> Result<(String, String), String> {
@@ -160,6 +164,7 @@ pub fn cmd_launch(args: LaunchArgs) -> Result<()> {
         args: &args.launch_args,
         env: &args.launch_env,
         foreground_simulator: args.foreground_simulator,
+        install_only: args.install_only,
     };
     launch::launch(&launch_opts)?;
 

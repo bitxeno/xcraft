@@ -12,6 +12,7 @@ pub struct LaunchOptions<'a> {
     pub args: &'a [String],
     pub env: &'a [(String, String)],
     pub foreground_simulator: bool,
+    pub install_only: bool,
 }
 
 /// Launch the built app on the resolved destination.
@@ -36,6 +37,11 @@ fn launch_macos(opts: &LaunchOptions) -> Result<()> {
 
     if !exec.exists() {
         bail!("executable not found: {}", exec.display());
+    }
+
+    if opts.install_only {
+        eprintln!("Install-only: skipping launch (macOS has no separate install step)");
+        return Ok(());
     }
 
     eprintln!("Running: {}", exec.display());
@@ -68,6 +74,11 @@ fn launch_simulator(udid: &str, opts: &LaunchOptions) -> Result<()> {
     let app_path = opts.info.app_path.display().to_string();
     eprintln!("Installing on simulator {udid}...");
     run_cmd(Command::new("xcrun").args(["simctl", "install", udid, &app_path]))?;
+
+    if opts.install_only {
+        eprintln!("Install-only: app installed, skipping launch");
+        return Ok(());
+    }
 
     // 4. Launch app.
     eprintln!("Launching {}...", opts.info.bundle_id);
@@ -107,6 +118,11 @@ fn launch_device(udid: &str, opts: &LaunchOptions) -> Result<()> {
         udid,
         &app_path,
     ]))?;
+
+    if opts.install_only {
+        eprintln!("Install-only: app installed, skipping launch");
+        return Ok(());
+    }
 
     // 2. Determine if --console is supported (Xcode 16+).
     let use_console = xcode_major_version() >= Some(16);

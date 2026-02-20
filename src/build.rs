@@ -207,6 +207,7 @@ fn run_piped_xcodebuild(args: &[String], opts: &BuildOptions) -> Result<()> {
     if opts.ws.ws_type == WorkspaceType::Spm {
         cmd.current_dir(opts.ws.working_dir());
     }
+    crate::util::print_cmd(&cmd);
 
     let mut child = cmd.spawn().context("failed to spawn xcodebuild")?;
     let stdout = child.stdout.take().unwrap();

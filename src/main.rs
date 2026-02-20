@@ -15,6 +15,10 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(name = "sweetpad", about = "CLI for building & running Xcode projects")]
 struct Cli {
+    /// Enable verbose output (print executed commands)
+    #[arg(long, short, global = true)]
+    verbose: bool,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -56,6 +60,7 @@ enum Commands {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    util::set_verbose(cli.verbose);
 
     match cli.command {
         Commands::Workspaces => cmd::cmd_workspaces(),

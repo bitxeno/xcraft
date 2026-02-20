@@ -1,9 +1,25 @@
 use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use anyhow::{Context, Result, bail};
 
+static VERBOSE: AtomicBool = AtomicBool::new(false);
+
+pub fn set_verbose(v: bool) {
+    VERBOSE.store(v, Ordering::Relaxed);
+}
+
+pub fn print_cmd(cmd: &Command) {
+    if VERBOSE.load(Ordering::Relaxed) {
+        let prog = cmd.get_program().to_string_lossy();
+        let args: Vec<_> = cmd.get_args().map(|a| a.to_string_lossy()).collect();
+        eprintln!("+ {} {}", prog, args.join(" "));
+    }
+}
+
 /// Run a command and return its stdout as a string. Fails if exit code != 0.
 pub fn run_cmd(cmd: &mut Command) -> Result<String> {
+    print_cmd(cmd);
     let output = cmd
         .output()
         .with_context(|| format!("failed to spawn: {:?}", cmd))?;
@@ -21,6 +37,7 @@ pub fn run_cmd(cmd: &mut Command) -> Result<String> {
 
 /// Run a command, inheriting stdio (for interactive output like xcodebuild).
 pub fn run_cmd_inherit(cmd: &mut Command) -> Result<()> {
+    print_cmd(cmd);
     let status = cmd
         .stdin(std::process::Stdio::inherit())
         .stdout(std::process::Stdio::inherit())

@@ -69,9 +69,9 @@ struct LaunchArgs {
     #[arg(long, default_value_t = true)]
     allow_provisioning_updates: bool,
 
-    /// Pipe build output through xcbeautify
-    #[arg(long)]
-    xcbeautify: bool,
+    /// Pipe build output through xcbeautify (auto-detected from PATH if not specified)
+    #[arg(long, num_args = 0..=1, default_missing_value = "true")]
+    xcbeautify: Option<bool>,
 
     /// Use Rosetta destination for simulator (arch=x86_64)
     #[arg(long)]

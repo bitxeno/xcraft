@@ -127,7 +127,7 @@ pub struct BuildOptions<'a> {
     pub destination_raw: &'a str,
     pub derived_data: Option<&'a str>,
     pub allow_provisioning_updates: bool,
-    pub xcbeautify: bool,
+    pub xcbeautify: Option<bool>,
     pub extra_args: &'a [String],
     pub extra_env: &'a [(String, String)],
 }
@@ -171,7 +171,7 @@ pub fn build(opts: &BuildOptions) -> Result<()> {
         }
     }
 
-    if opts.xcbeautify && which_xcbeautify() {
+    if opts.xcbeautify.unwrap_or_else(which_xcbeautify) {
         // Pipe through xcbeautify.
         run_piped_xcodebuild(&args, opts)?;
     } else {

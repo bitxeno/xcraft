@@ -1,0 +1,167 @@
+use std::path::PathBuf;
+
+use anyhow::Result;
+use clap::Parser;
+
+use crate::{build, cache, destination, launch, scheme, workspace};
+
+#[derive(Parser)]
+pub struct LaunchArgs {
+    /// Ignore cached selections and re-prompt for all options (selections are still saved)
+    #[arg(long)]
+    configure: bool,
+
+    /// Path to .xcworkspace or Package.swift; if omitted, uses cached value or prompts for selection
+    #[arg(long)]
+    workspace: Option<PathBuf>,
+
+    /// Scheme name; if omitted, uses cached value or prompts for selection
+    #[arg(long)]
+    scheme: Option<String>,
+
+    /// Build configuration (default: Debug); if omitted, uses cached value or prompts for selection
+    #[arg(long)]
+    configuration: Option<String>,
+
+    /// Destination spec: "simulator:<udid>", "device:<udid>", or "macos"; if omitted, uses cached value or prompts for selection
+    #[arg(long)]
+    destination: Option<String>,
+
+    /// Path to derived data
+    #[arg(long)]
+    derived_data: Option<String>,
+
+    /// Allow provisioning updates (default: true)
+    #[arg(long, default_value_t = true)]
+    allow_provisioning_updates: bool,
+
+    /// Pipe build output through xcbeautify (auto-detected from PATH if not specified)
+    #[arg(long, num_args = 0..=1, default_missing_value = "true")]
+    xcbeautify: Option<bool>,
+
+    /// Use Rosetta destination for simulator (arch=x86_64)
+    #[arg(long)]
+    rosetta_destination: bool,
+
+    /// Bring simulator to foreground (default: true)
+    #[arg(long, default_value_t = true)]
+    foreground_simulator: bool,
+
+    /// Extra build arguments (repeatable)
+    #[arg(long = "build-arg")]
+    build_args: Vec<String>,
+
+    /// Extra build environment KEY=VALUE (repeatable)
+    #[arg(long = "build-env", value_parser = parse_key_val)]
+    build_env: Vec<(String, String)>,
+
+    /// Launch arguments passed to the app (repeatable)
+    #[arg(long = "arg")]
+    launch_args: Vec<String>,
+
+    /// Launch environment KEY=VALUE (repeatable)
+    #[arg(long = "env", value_parser = parse_key_val)]
+    launch_env: Vec<(String, String)>,
+}
+
+fn parse_key_val(s: &str) -> Result<(String, String), String> {
+    let pos = s
+        .find('=')
+        .ok_or_else(|| format!("invalid KEY=VALUE: no `=` found in `{s}`"))?;
+    Ok((s[..pos].to_string(), s[pos + 1..].to_string()))
+}
+
+pub fn cmd_launch(args: LaunchArgs) -> Result<()> {
+    // Load cached state (ignored when --configure is set).
+    let cache_root = cache::CachedState::root()?;
+    let mut state = if args.configure {
+        cache::CachedState::default()
+    } else {
+        cache::CachedState::load(&cache_root)
+    };
+
+    // 1. Resolve inputs, falling back to cached values.
+    let cached_ws_path = state.workspace.as_ref().map(|p| cache_root.join(p));
+    let ws_explicit = args.workspace.as_deref().or(cached_ws_path.as_deref());
+    let ws = workspace::resolve_workspace(ws_explicit)?;
+
+    let scheme_explicit = args.scheme.as_deref().or(state.scheme.as_deref());
+    let scheme_name = scheme::resolve_scheme(&ws, scheme_explicit)?;
+
+    let config_explicit = args
+        .configuration
+        .as_deref()
+        .or(state.configuration.as_deref());
+    let config = scheme::resolve_configuration(&ws, config_explicit)?;
+
+    let dest_explicit = args.destination.as_deref();
+    let dest = if let Some(spec) = dest_explicit {
+        destination::resolve_destination(Some(spec))?
+    } else if let Some(cached) = state.destination.clone() {
+        cached
+    } else {
+        destination::resolve_destination(None)?
+    };
+
+    let dest_raw = dest.xcodebuild_destination_string(args.rosetta_destination);
+
+    eprintln!("Workspace:     {}", ws.path.display());
+    eprintln!("Scheme:        {scheme_name}");
+    eprintln!("Configuration: {config}");
+    eprintln!("Destination:   {dest}");
+    eprintln!();
+
+    // Save resolved values to cache.
+    state.workspace = Some(
+        ws.path
+            .strip_prefix(&cache_root)
+            .unwrap_or(&ws.path)
+            .display()
+            .to_string(),
+    );
+    state.scheme = Some(scheme_name.clone());
+    state.configuration = Some(config.clone());
+    state.destination = Some(dest.clone());
+    if let Err(e) = state.save(&cache_root) {
+        eprintln!("Warning: failed to save cache: {e}");
+    }
+
+    // 2. Build.
+    let build_opts = build::BuildOptions {
+        ws: &ws,
+        scheme: &scheme_name,
+        configuration: &config,
+        destination_raw: &dest_raw,
+        derived_data: args.derived_data.as_deref(),
+        allow_provisioning_updates: args.allow_provisioning_updates,
+        xcbeautify: args.xcbeautify,
+        extra_args: &args.build_args,
+        extra_env: &args.build_env,
+    };
+    build::build(&build_opts)?;
+
+    // 3. Get launch info from build settings.
+    let info = build::get_launch_info(
+        &ws,
+        &scheme_name,
+        &config,
+        &dest,
+        args.derived_data.as_deref(),
+    )?;
+
+    eprintln!();
+    eprintln!("App path:  {}", info.app_path.display());
+    eprintln!("Bundle ID: {}", info.bundle_id);
+
+    // 4. Launch.
+    let launch_opts = launch::LaunchOptions {
+        dest: &dest,
+        info: &info,
+        args: &args.launch_args,
+        env: &args.launch_env,
+        foreground_simulator: args.foreground_simulator,
+    };
+    launch::launch(&launch_opts)?;
+
+    Ok(())
+}

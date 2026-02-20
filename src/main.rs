@@ -1,4 +1,5 @@
 mod build;
+mod cache;
 mod destination;
 mod launch;
 mod scheme;
@@ -45,19 +46,23 @@ enum Commands {
 
 #[derive(Parser)]
 struct LaunchArgs {
-    /// Path to .xcworkspace or Package.swift
+    /// Ignore cached selections and re-prompt for all options (selections are still saved)
+    #[arg(long)]
+    configure: bool,
+
+    /// Path to .xcworkspace or Package.swift; if omitted, uses cached value or prompts for selection
     #[arg(long)]
     workspace: Option<PathBuf>,
 
-    /// Scheme name
+    /// Scheme name; if omitted, uses cached value or prompts for selection
     #[arg(long)]
     scheme: Option<String>,
 
-    /// Build configuration (default: Debug)
+    /// Build configuration (default: Debug); if omitted, uses cached value or prompts for selection
     #[arg(long)]
     configuration: Option<String>,
 
-    /// Destination spec: "simulator:<udid>", "device:<udid>", or "macos"
+    /// Destination spec: "simulator:<udid>", "device:<udid>", or "macos"; if omitted, uses cached value or prompts for selection
     #[arg(long)]
     destination: Option<String>,
 
@@ -160,11 +165,36 @@ fn cmd_destinations() -> Result<()> {
 }
 
 fn cmd_launch(args: LaunchArgs) -> Result<()> {
-    // 1. Resolve inputs.
-    let ws = workspace::resolve_workspace(args.workspace.as_deref())?;
-    let scheme_name = scheme::resolve_scheme(&ws, args.scheme.as_deref())?;
-    let config = scheme::resolve_configuration(&ws, args.configuration.as_deref())?;
-    let dest = destination::resolve_destination(args.destination.as_deref())?;
+    // Load cached state (ignored when --configure is set).
+    let cache_root = cache::CachedState::root()?;
+    let mut state = if args.configure {
+        cache::CachedState::default()
+    } else {
+        cache::CachedState::load(&cache_root)
+    };
+
+    // 1. Resolve inputs, falling back to cached values.
+    let cached_ws_path = state.workspace.as_ref().map(|p| cache_root.join(p));
+    let ws_explicit = args.workspace.as_deref().or(cached_ws_path.as_deref());
+    let ws = workspace::resolve_workspace(ws_explicit)?;
+
+    let scheme_explicit = args.scheme.as_deref().or(state.scheme.as_deref());
+    let scheme_name = scheme::resolve_scheme(&ws, scheme_explicit)?;
+
+    let config_explicit = args
+        .configuration
+        .as_deref()
+        .or(state.configuration.as_deref());
+    let config = scheme::resolve_configuration(&ws, config_explicit)?;
+
+    let dest_explicit = args.destination.as_deref();
+    let dest = if let Some(spec) = dest_explicit {
+        destination::resolve_destination(Some(spec))?
+    } else if let Some(cached) = state.destination.clone() {
+        cached
+    } else {
+        destination::resolve_destination(None)?
+    };
 
     let dest_raw = dest.xcodebuild_destination_string(args.rosetta_destination);
 
@@ -173,6 +203,21 @@ fn cmd_launch(args: LaunchArgs) -> Result<()> {
     eprintln!("Configuration: {config}");
     eprintln!("Destination:   {dest}");
     eprintln!();
+
+    // Save resolved values to cache.
+    state.workspace = Some(
+        ws.path
+            .strip_prefix(&cache_root)
+            .unwrap_or(&ws.path)
+            .display()
+            .to_string(),
+    );
+    state.scheme = Some(scheme_name.clone());
+    state.configuration = Some(config.clone());
+    state.destination = Some(dest.clone());
+    if let Err(e) = state.save(&cache_root) {
+        eprintln!("Warning: failed to save cache: {e}");
+    }
 
     // 2. Build.
     let build_opts = build::BuildOptions {

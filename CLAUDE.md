@@ -9,6 +9,7 @@ CLI equivalent of the SweetPad VSCode extension for building and running Xcode p
   - clap (CLI parsing)
   - dialoguer (interactive prompts)
   - serde/serde_json (JSON parsing)
+  - toml (TOML serialization for cache)
   - walkdir (file discovery)
   - anyhow (error handling)
   - tempfile
@@ -21,6 +22,7 @@ CLI equivalent of the SweetPad VSCode extension for building and running Xcode p
 - `src/destination.rs` — destination listing (simulators via `simctl`, physical devices via `devicectl`, macOS)
 - `src/build.rs` — `xcodebuild build` execution + build settings extraction + optional xcbeautify pipe
 - `src/launch.rs` — app launch by destination type (macOS direct exec, simulator simctl install/launch, device devicectl install/launch)
+- `src/cache.rs` — persistent cache (`CachedState`) for last-used workspace/scheme/configuration/destination, stored in `.sweetpad/state.toml`
 - `src/util.rs` — command execution helpers + fault-tolerant JSON parsing (handles non-JSON prefixes in xcodebuild output)
 - `docs/build-run-launch-flow.md` — detailed flow documentation based on SweetPad extension source (Chinese)
 

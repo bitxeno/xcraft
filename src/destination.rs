@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::process::Command;
 
 use anyhow::{Result, bail};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::util::{parse_cli_json, run_cmd};
 
@@ -10,7 +10,8 @@ use crate::util::{parse_cli_json, run_cmd};
 // Types
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum Destination {
     Simulator {
         udid: String,

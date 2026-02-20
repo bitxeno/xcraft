@@ -80,13 +80,7 @@ pub fn get_launch_info(
     derived_data: Option<&str>,
 ) -> Result<LaunchInfo> {
     let dest_str = dest.xcodebuild_destination_string(false);
-    let entries = get_build_settings(
-        ws,
-        scheme,
-        configuration,
-        Some(&dest_str),
-        derived_data,
-    )?;
+    let entries = get_build_settings(ws, scheme, configuration, Some(&dest_str), derived_data)?;
     let entry = entries
         .first()
         .context("no build settings returned by xcodebuild")?;

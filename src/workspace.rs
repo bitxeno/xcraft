@@ -68,7 +68,8 @@ pub fn detect_workspaces(root: &Path) -> Vec<Workspace> {
 }
 
 /// Resolve workspace: use explicit path, or auto-detect from current dir.
-pub fn resolve_workspace(explicit: Option<&Path>) -> Result<Workspace> {
+/// When `default` is provided, it pre-selects the matching workspace in the prompt.
+pub fn resolve_workspace(explicit: Option<&Path>, default: Option<&Path>) -> Result<Workspace> {
     if let Some(p) = explicit {
         return Ok(Workspace::new(p.to_path_buf()));
     }
@@ -81,10 +82,13 @@ pub fn resolve_workspace(explicit: Option<&Path>) -> Result<Workspace> {
         1 => Ok(candidates.into_iter().next().unwrap()),
         _ => {
             let labels: Vec<String> = candidates.iter().map(|w| w.to_string()).collect();
+            let default_idx = default
+                .and_then(|d| candidates.iter().position(|w| w.path == d))
+                .unwrap_or(0);
             let sel = dialoguer::Select::new()
                 .with_prompt("Multiple workspaces found, select one")
                 .items(&labels)
-                .default(0)
+                .default(default_idx)
                 .interact()?;
             Ok(candidates.into_iter().nth(sel).unwrap())
         }

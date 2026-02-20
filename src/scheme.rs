@@ -132,7 +132,12 @@ pub fn list_configurations(ws: &Workspace) -> Result<Vec<String>> {
 }
 
 /// Resolve scheme: use explicit name, or prompt user.
-pub fn resolve_scheme(ws: &Workspace, explicit: Option<&str>) -> Result<String> {
+/// When `default` is provided, it pre-selects the matching item in the prompt.
+pub fn resolve_scheme(
+    ws: &Workspace,
+    explicit: Option<&str>,
+    default: Option<&str>,
+) -> Result<String> {
     if let Some(s) = explicit {
         return Ok(s.to_string());
     }
@@ -141,10 +146,13 @@ pub fn resolve_scheme(ws: &Workspace, explicit: Option<&str>) -> Result<String> 
         0 => bail!("no schemes found"),
         1 => Ok(schemes.into_iter().next().unwrap()),
         _ => {
+            let default_idx = default
+                .and_then(|d| schemes.iter().position(|s| s == d))
+                .unwrap_or(0);
             let sel = dialoguer::Select::new()
                 .with_prompt("Select scheme")
                 .items(&schemes)
-                .default(0)
+                .default(default_idx)
                 .interact()?;
             Ok(schemes.into_iter().nth(sel).unwrap())
         }
@@ -153,7 +161,12 @@ pub fn resolve_scheme(ws: &Workspace, explicit: Option<&str>) -> Result<String> 
 
 /// Resolve configuration: use explicit name, or default to Debug when
 /// configs are exactly [Debug, Release].
-pub fn resolve_configuration(ws: &Workspace, explicit: Option<&str>) -> Result<String> {
+/// When `default` is provided, it pre-selects the matching item in the prompt.
+pub fn resolve_configuration(
+    ws: &Workspace,
+    explicit: Option<&str>,
+    default: Option<&str>,
+) -> Result<String> {
     if let Some(c) = explicit {
         return Ok(c.to_string());
     }
@@ -162,16 +175,20 @@ pub fn resolve_configuration(ws: &Workspace, explicit: Option<&str>) -> Result<S
     if configs.len() == 2
         && configs.contains(&"Debug".to_string())
         && configs.contains(&"Release".to_string())
+        && default.is_none()
     {
         return Ok("Debug".into());
     }
     match configs.len() {
         1 => Ok(configs.into_iter().next().unwrap()),
         _ => {
+            let default_idx = default
+                .and_then(|d| configs.iter().position(|c| c == d))
+                .unwrap_or(0);
             let sel = dialoguer::Select::new()
                 .with_prompt("Select configuration")
                 .items(&configs)
-                .default(0)
+                .default(default_idx)
                 .interact()?;
             Ok(configs.into_iter().nth(sel).unwrap())
         }

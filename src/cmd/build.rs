@@ -75,33 +75,49 @@ pub struct ResolvedBuild {
 /// Resolve inputs, build, and return the resolved state.
 pub fn resolve_and_build(args: &BuildArgs) -> Result<ResolvedBuild> {
     let cache_root = cache::CachedState::root()?;
-    let mut state = if args.configure {
-        cache::CachedState::default()
-    } else {
-        cache::CachedState::load(&cache_root)
-    };
+    let mut state = cache::CachedState::load(&cache_root);
+    let configure = args.configure;
 
     // 1. Resolve inputs, falling back to cached values.
+    //    When `--configure`, cached values become default hints (pre-selected in
+    //    prompts) instead of being used as explicit values (which skip prompts).
+    //    The `default` parameter is harmless when `explicit` is set (early return).
     let cached_ws_path = state.workspace.as_ref().map(|p| cache_root.join(p));
-    let ws_explicit = args.workspace.as_deref().or(cached_ws_path.as_deref());
-    let ws = workspace::resolve_workspace(ws_explicit)?;
+    let ws_explicit = if configure {
+        args.workspace.as_deref()
+    } else {
+        args.workspace.as_deref().or(cached_ws_path.as_deref())
+    };
+    let ws = workspace::resolve_workspace(ws_explicit, cached_ws_path.as_deref())?;
 
-    let scheme_explicit = args.scheme.as_deref().or(state.scheme.as_deref());
-    let scheme_name = scheme::resolve_scheme(&ws, scheme_explicit)?;
+    let scheme_explicit = if configure {
+        args.scheme.as_deref()
+    } else {
+        args.scheme.as_deref().or(state.scheme.as_deref())
+    };
+    let scheme_name = scheme::resolve_scheme(&ws, scheme_explicit, state.scheme.as_deref())?;
 
-    let config_explicit = args
-        .configuration
-        .as_deref()
-        .or(state.configuration.as_deref());
-    let config = scheme::resolve_configuration(&ws, config_explicit)?;
+    let config_explicit = if configure {
+        args.configuration.as_deref()
+    } else {
+        args.configuration
+            .as_deref()
+            .or(state.configuration.as_deref())
+    };
+    let config =
+        scheme::resolve_configuration(&ws, config_explicit, state.configuration.as_deref())?;
 
     let dest_explicit = args.destination.as_deref();
     let dest = if let Some(spec) = dest_explicit {
-        destination::resolve_destination(Some(spec))?
-    } else if let Some(cached) = state.destination.clone() {
-        cached
+        destination::resolve_destination(Some(spec), None)?
+    } else if let Some(cached) = &state.destination {
+        if configure {
+            destination::resolve_destination(None, Some(cached))?
+        } else {
+            cached.clone()
+        }
     } else {
-        destination::resolve_destination(None)?
+        destination::resolve_destination(None, None)?
     };
 
     let dest_raw = dest.xcodebuild_destination_string(args.rosetta_destination);

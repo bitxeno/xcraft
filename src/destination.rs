@@ -235,7 +235,11 @@ fn list_devices() -> Result<Vec<Destination>> {
 }
 
 /// Resolve destination: use explicit spec, or prompt user.
-pub fn resolve_destination(explicit: Option<&str>) -> Result<Destination> {
+/// When `default` is provided, it pre-selects the matching destination in the prompt.
+pub fn resolve_destination(
+    explicit: Option<&str>,
+    default: Option<&Destination>,
+) -> Result<Destination> {
     if let Some(spec) = explicit {
         return parse_destination_spec(spec);
     }
@@ -246,10 +250,16 @@ pub fn resolve_destination(explicit: Option<&str>) -> Result<Destination> {
     }
 
     let labels: Vec<String> = dests.iter().map(|d| d.to_string()).collect();
+    let default_idx = default
+        .and_then(|d| {
+            let d_str = d.to_string();
+            labels.iter().position(|l| l == &d_str)
+        })
+        .unwrap_or(0);
     let sel = dialoguer::Select::new()
         .with_prompt("Select destination")
         .items(&labels)
-        .default(0)
+        .default(default_idx)
         .interact()?;
     Ok(dests.into_iter().nth(sel).unwrap())
 }

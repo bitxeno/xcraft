@@ -57,3 +57,11 @@ xcli reset
 ```
 
 All resolve options (workspace, scheme, configuration, destination) are cached in `.xcli/state.toml` so you only need to select them once. Use `xcli configure` to re-select, or `xcli reset` to clear.
+
+## Acknowledgments
+
+Inspired by [SweetPad](https://github.com/sweetpad-dev/sweetpad), a VSCode extension for Xcode development.
+
+## License
+
+[MIT](LICENSE)

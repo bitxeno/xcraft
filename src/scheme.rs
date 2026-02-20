@@ -51,10 +51,10 @@ fn list_schemes_spm(ws: &Workspace) -> Result<Vec<String>> {
 
     for p in &pkg.products {
         // Include executables and libraries.
-        if let serde_json::Value::Object(ref m) = p.product_type {
-            if m.contains_key("executable") || m.contains_key("library") {
-                schemes.push(p.name.clone());
-            }
+        if let serde_json::Value::Object(ref m) = p.product_type
+            && (m.contains_key("executable") || m.contains_key("library"))
+        {
+            schemes.push(p.name.clone());
         }
     }
     for t in &pkg.targets {

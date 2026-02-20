@@ -139,15 +139,13 @@ fn launch_device(udid: &str, opts: &LaunchOptions) -> Result<()> {
     crate::util::run_cmd_inherit(&mut cmd).context("devicectl launch failed")?;
 
     // 4. Read JSON output for PID.
-    if let Ok(json_str) = std::fs::read_to_string(tmp.path()) {
-        if let Ok(v) = serde_json::from_str::<serde_json::Value>(&json_str) {
-            if let Some(pid) = v
-                .pointer("/result/process/processIdentifier")
-                .and_then(|p| p.as_u64())
-            {
-                eprintln!("App launched with PID: {pid}");
-            }
-        }
+    if let Ok(json_str) = std::fs::read_to_string(tmp.path())
+        && let Ok(v) = serde_json::from_str::<serde_json::Value>(&json_str)
+        && let Some(pid) = v
+            .pointer("/result/process/processIdentifier")
+            .and_then(|p| p.as_u64())
+    {
+        eprintln!("App launched with PID: {pid}");
     }
 
     Ok(())

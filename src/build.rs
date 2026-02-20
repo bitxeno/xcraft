@@ -166,10 +166,8 @@ pub fn build(opts: &BuildOptions) -> Result<()> {
 
     // Non-build-setting extra args (flags).
     for arg in opts.extra_args {
-        if !arg.contains('=') || arg.starts_with('-') {
-            if arg != "build" {
-                args.push(arg.clone());
-            }
+        if (!arg.contains('=') || arg.starts_with('-')) && arg != "build" {
+            args.push(arg.clone());
         }
     }
 

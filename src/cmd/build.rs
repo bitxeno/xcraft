@@ -27,8 +27,9 @@ pub struct ResolveArgs {
     pub destination: Option<String>,
 }
 
+/// Shared options for any xcodebuild action (build, clean, etc.).
 #[derive(Parser)]
-pub struct BuildArgs {
+pub struct XcodeActionArgs {
     /// Ignore cached selections and re-prompt for all options (selections are still saved)
     #[arg(long)]
     pub configure: bool,
@@ -40,13 +41,19 @@ pub struct BuildArgs {
     #[arg(long)]
     pub derived_data: Option<String>,
 
+    /// Pipe output through xcbeautify (auto-detected from PATH if not specified)
+    #[arg(long, num_args = 0..=1, default_missing_value = "true")]
+    pub xcbeautify: Option<bool>,
+}
+
+#[derive(Parser)]
+pub struct BuildArgs {
+    #[command(flatten)]
+    pub action: XcodeActionArgs,
+
     /// Allow provisioning updates (default: true)
     #[arg(long, default_value_t = true)]
     pub allow_provisioning_updates: bool,
-
-    /// Pipe build output through xcbeautify (auto-detected from PATH if not specified)
-    #[arg(long, num_args = 0..=1, default_missing_value = "true")]
-    pub xcbeautify: Option<bool>,
 
     /// Use Rosetta destination for simulator (arch=x86_64)
     #[arg(long)]
@@ -156,7 +163,7 @@ pub fn resolve_and_cache(args: &ResolveArgs, configure: bool) -> Result<Resolved
 
 /// Resolve inputs, build, and return the resolved state.
 pub fn resolve_and_build(args: &BuildArgs) -> Result<ResolvedBuild> {
-    let resolved = resolve_and_cache(&args.resolve, args.configure)?;
+    let resolved = resolve_and_cache(&args.action.resolve, args.action.configure)?;
 
     let dest_raw = resolved
         .dest
@@ -167,10 +174,10 @@ pub fn resolve_and_build(args: &BuildArgs) -> Result<ResolvedBuild> {
         scheme: &resolved.scheme_name,
         configuration: &resolved.config,
         destination_raw: &dest_raw,
-        derived_data: args.derived_data.as_deref(),
+        derived_data: args.action.derived_data.as_deref(),
         allow_provisioning_updates: args.allow_provisioning_updates,
         skip_codesigning: args.skip_codesigning,
-        xcbeautify: args.xcbeautify,
+        xcbeautify: args.action.xcbeautify,
         extra_args: &args.build_args,
         extra_env: &args.build_env,
     };

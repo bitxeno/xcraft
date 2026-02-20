@@ -43,7 +43,7 @@ pub fn cmd_launch(args: LaunchArgs) -> Result<()> {
         &resolved.scheme_name,
         &resolved.config,
         &resolved.dest,
-        args.build.derived_data.as_deref(),
+        args.build.action.derived_data.as_deref(),
     )?;
 
     eprintln!();

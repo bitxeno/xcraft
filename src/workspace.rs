@@ -41,9 +41,19 @@ impl Workspace {
     }
 }
 
+impl std::fmt::Display for WorkspaceType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WorkspaceType::Xcode => write!(f, "Xcode"),
+            WorkspaceType::Spm => write!(f, "SPM"),
+            WorkspaceType::Tuist => write!(f, "Tuist"),
+        }
+    }
+}
+
 impl std::fmt::Display for Workspace {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.path.display())
+        write!(f, "[{}] {}", self.ws_type, self.path.display())
     }
 }
 

@@ -1,10 +1,11 @@
 # xcli
 
-CLI for building and running Xcode projects from the terminal, aiming to simplify agentic development on Apple platforms. Supports both `.xcworkspace` and SPM `Package.swift`.
+CLI for building and running Xcode projects from the terminal, aiming to simplify agentic development on Apple platforms. Supports `.xcworkspace`, SPM `Package.swift`, and Tuist `Project.swift`.
 
 ## Features
 
-- Auto-detect `.xcworkspace` and `Package.swift` projects
+- Auto-detect `.xcworkspace`, `Package.swift`, and Tuist `Project.swift` projects
+- Tuist integration — automatically runs `tuist generate` before building
 - Interactive selection of workspace, scheme, configuration, and destination
 - Cached selections for repeat builds — configure once, run many times
 - Build, clean, and launch in one command

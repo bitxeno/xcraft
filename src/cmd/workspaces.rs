@@ -12,6 +12,7 @@ pub fn cmd_workspaces() -> Result<()> {
         let tag = match ws.ws_type {
             workspace::WorkspaceType::Xcode => "xcode",
             workspace::WorkspaceType::Spm => "spm",
+            workspace::WorkspaceType::Tuist => "tuist",
         };
         println!("[{tag}] {}", ws.path.display());
     }

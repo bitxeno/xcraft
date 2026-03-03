@@ -17,7 +17,7 @@ pub fn cmd_clean(args: CleanArgs) -> Result<()> {
     let dest_raw = resolved.dest.xcodebuild_destination_string();
 
     build::clean(
-        &resolved.ws,
+        &resolved.effective_ws,
         &resolved.scheme_name,
         &resolved.config,
         &dest_raw,

@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use anyhow::{Result, bail};
 use walkdir::WalkDir;
@@ -8,6 +9,7 @@ use walkdir::WalkDir;
 pub enum WorkspaceType {
     Xcode,
     Spm,
+    Tuist,
 }
 
 /// A detected workspace path with its type.
@@ -26,9 +28,15 @@ impl Workspace {
     /// For SPM projects, returns the directory containing Package.swift.
     /// For Xcode projects, returns the parent directory of the .xcworkspace.
     pub fn working_dir(&self) -> &Path {
+        self.path.parent().unwrap_or(&self.path)
+    }
+
+    /// For Tuist workspaces, run `tuist generate` and return the generated Xcode workspace.
+    /// For other types, return a clone of self.
+    pub fn ensure_generated(&self) -> Result<Workspace> {
         match self.ws_type {
-            WorkspaceType::Spm => self.path.parent().unwrap_or(&self.path),
-            WorkspaceType::Xcode => self.path.parent().unwrap_or(&self.path),
+            WorkspaceType::Tuist => tuist_generate(self),
+            _ => Ok(self.clone()),
         }
     }
 }
@@ -42,6 +50,8 @@ impl std::fmt::Display for Workspace {
 fn detect_type(path: &Path) -> WorkspaceType {
     if path.file_name().is_some_and(|n| n == "Package.swift") {
         WorkspaceType::Spm
+    } else if path.file_name().is_some_and(|n| n == "Project.swift") {
+        WorkspaceType::Tuist
     } else {
         WorkspaceType::Xcode
     }
@@ -60,7 +70,10 @@ pub fn detect_workspaces(root: &Path) -> Vec<Workspace> {
             Some(n) => n,
             None => continue,
         };
-        if name == "Package.swift" || (name.ends_with(".xcworkspace") && !path.starts_with(".")) {
+        if name == "Package.swift"
+            || name == "Project.swift"
+            || (name.ends_with(".xcworkspace") && !path.starts_with("."))
+        {
             results.push(Workspace::new(path.to_path_buf()));
         }
     }
@@ -78,7 +91,7 @@ pub fn resolve_workspace(explicit: Option<&Path>, default: Option<&Path>) -> Res
     let candidates = detect_workspaces(&cwd);
 
     match candidates.len() {
-        0 => bail!("no .xcworkspace or Package.swift found (searched depth 4)"),
+        0 => bail!("no .xcworkspace, Package.swift, or Project.swift found (searched depth 4)"),
         1 => Ok(candidates.into_iter().next().unwrap()),
         _ => {
             let labels: Vec<String> = candidates.iter().map(|w| w.to_string()).collect();
@@ -93,4 +106,30 @@ pub fn resolve_workspace(explicit: Option<&Path>, default: Option<&Path>) -> Res
             Ok(candidates.into_iter().nth(sel).unwrap())
         }
     }
+}
+
+/// Run `tuist generate --no-open` and return the generated `.xcworkspace`.
+fn tuist_generate(ws: &Workspace) -> Result<Workspace> {
+    let dir = ws.working_dir();
+    eprintln!("Running tuist generate...");
+    crate::util::run_cmd_inherit(
+        Command::new("tuist")
+            .args(["generate", "--no-open", "--path"])
+            .arg(dir),
+    )?;
+
+    // Find the generated .xcworkspace in the project directory.
+    for entry in std::fs::read_dir(dir)? {
+        let path = entry?.path();
+        if path.extension().is_some_and(|ext| ext == "xcworkspace") {
+            return Ok(Workspace {
+                path,
+                ws_type: WorkspaceType::Xcode,
+            });
+        }
+    }
+    bail!(
+        "no .xcworkspace found after tuist generate in {}",
+        dir.display()
+    )
 }

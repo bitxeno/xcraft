@@ -76,7 +76,9 @@ fn parse_key_val(s: &str) -> Result<(String, String), String> {
 }
 
 pub struct ResolvedBuild {
-    pub ws: Workspace,
+    /// The workspace to use for xcodebuild operations (same as original for Xcode/SPM,
+    /// the generated .xcworkspace for Tuist).
+    pub effective_ws: Workspace,
     pub scheme_name: String,
     pub config: String,
     pub dest: Destination,
@@ -97,13 +99,15 @@ pub fn resolve_and_cache(args: &ResolveArgs, configure: bool) -> Result<Resolved
         args.workspace.as_deref().or(cached_ws_path.as_deref())
     };
     let ws = workspace::resolve_workspace(ws_explicit, cached_ws_path.as_deref())?;
+    let effective_ws = ws.ensure_generated()?;
 
     let scheme_explicit = if configure {
         args.scheme.as_deref()
     } else {
         args.scheme.as_deref().or(state.scheme.as_deref())
     };
-    let scheme_name = scheme::resolve_scheme(&ws, scheme_explicit, state.scheme.as_deref())?;
+    let scheme_name =
+        scheme::resolve_scheme(&effective_ws, scheme_explicit, state.scheme.as_deref())?;
 
     let config_explicit = if configure {
         args.configuration.as_deref()
@@ -112,8 +116,11 @@ pub fn resolve_and_cache(args: &ResolveArgs, configure: bool) -> Result<Resolved
             .as_deref()
             .or(state.configuration.as_deref())
     };
-    let config =
-        scheme::resolve_configuration(&ws, config_explicit, state.configuration.as_deref())?;
+    let config = scheme::resolve_configuration(
+        &effective_ws,
+        config_explicit,
+        state.configuration.as_deref(),
+    )?;
 
     let dest_explicit = args.destination.as_deref();
     let dest = if let Some(spec) = dest_explicit {
@@ -150,7 +157,7 @@ pub fn resolve_and_cache(args: &ResolveArgs, configure: bool) -> Result<Resolved
     }
 
     Ok(ResolvedBuild {
-        ws,
+        effective_ws,
         scheme_name,
         config,
         dest,
@@ -164,7 +171,7 @@ pub fn resolve_and_build(args: &BuildArgs) -> Result<ResolvedBuild> {
     let dest_raw = resolved.dest.xcodebuild_destination_string();
 
     let build_opts = build::BuildOptions {
-        ws: &resolved.ws,
+        ws: &resolved.effective_ws,
         scheme: &resolved.scheme_name,
         configuration: &resolved.config,
         destination_raw: &dest_raw,

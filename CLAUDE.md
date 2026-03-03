@@ -1,6 +1,6 @@
 # xcli
 
-CLI for building and running Xcode projects (`.xcworkspace` and SPM `Package.swift`) from the terminal.
+CLI for building and running Xcode projects (`.xcworkspace`, SPM `Package.swift`, and Tuist `Project.swift`) from the terminal.
 
 ## Tech Stack
 
@@ -24,7 +24,7 @@ CLI for building and running Xcode projects (`.xcworkspace` and SPM `Package.swi
   - `reset.rs` — `reset` subcommand (clear cached selections)
   - `launch.rs` — `launch` subcommand (flattens `BuildArgs`, adds launch-specific options)
   - `workspaces.rs`, `schemes.rs`, `configs.rs`, `destinations.rs` — listing subcommands
-- `src/workspace.rs` — workspace detection and resolution (depth-4 scan for `.xcworkspace` / `Package.swift`)
+- `src/workspace.rs` — workspace detection and resolution (depth-4 scan for `.xcworkspace` / `Package.swift` / `Project.swift`); Tuist support via `ensure_generated()` which runs `tuist generate --no-open` and returns the generated `.xcworkspace`
 - `src/scheme.rs` — scheme and configuration listing/resolution (SPM via `swift package dump-package`, Xcode via `xcodebuild -list`)
 - `src/destination.rs` — destination listing (simulators via `simctl`, physical devices via `devicectl`, macOS)
 - `src/build.rs` — `xcodebuild build` / `xcodebuild clean` execution + build settings extraction + optional xcbeautify pipe

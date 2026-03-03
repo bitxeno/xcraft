@@ -11,6 +11,7 @@ pub fn list_schemes(ws: &Workspace) -> Result<Vec<String>> {
     match ws.ws_type {
         WorkspaceType::Spm => list_schemes_spm(ws),
         WorkspaceType::Xcode => list_schemes_xcode(ws),
+        WorkspaceType::Tuist => unreachable!("Tuist should be resolved via ensure_generated()"),
     }
 }
 
@@ -128,6 +129,7 @@ pub fn list_configurations(ws: &Workspace) -> Result<Vec<String>> {
                 .unwrap_or_else(|| vec!["Debug".into(), "Release".into()]);
             Ok(configs)
         }
+        WorkspaceType::Tuist => unreachable!("Tuist should be resolved via ensure_generated()"),
     }
 }
 

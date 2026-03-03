@@ -6,7 +6,8 @@ use crate::{scheme, workspace};
 
 pub fn cmd_configs(ws_path: Option<PathBuf>) -> Result<()> {
     let ws = workspace::resolve_workspace(ws_path.as_deref(), None)?;
-    let configs = scheme::list_configurations(&ws)?;
+    let effective_ws = ws.ensure_generated()?;
+    let configs = scheme::list_configurations(&effective_ws)?;
     for c in &configs {
         println!("{c}");
     }

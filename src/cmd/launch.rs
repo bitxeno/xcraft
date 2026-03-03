@@ -39,7 +39,7 @@ pub fn cmd_launch(args: LaunchArgs) -> Result<()> {
 
     // Get launch info from build settings.
     let info = build::get_launch_info(
-        &resolved.ws,
+        &resolved.effective_ws,
         &resolved.scheme_name,
         &resolved.config,
         &resolved.dest,

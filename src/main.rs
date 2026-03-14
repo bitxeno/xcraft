@@ -31,13 +31,20 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// List available workspaces (.xcworkspace / Package.swift)
-    Workspaces,
+    Workspaces {
+        /// Output as JSON with name and arg fields
+        #[arg(long)]
+        json: bool,
+    },
 
     /// List schemes for a workspace
     Schemes {
         /// Path to .xcworkspace or Package.swift
         #[arg(long)]
         workspace: Option<PathBuf>,
+        /// Output as JSON with name and arg fields
+        #[arg(long)]
+        json: bool,
     },
 
     /// List build configurations for a workspace
@@ -45,10 +52,17 @@ enum Commands {
         /// Path to .xcworkspace or Package.swift
         #[arg(long)]
         workspace: Option<PathBuf>,
+        /// Output as JSON with name and arg fields
+        #[arg(long)]
+        json: bool,
     },
 
     /// List available destinations (simulators, devices, macOS)
-    Destinations,
+    Destinations {
+        /// Output as JSON with name and arg fields
+        #[arg(long)]
+        json: bool,
+    },
 
     /// Interactively select and cache workspace, scheme, configuration, and destination
     Configure(cmd::build::ResolveArgs),
@@ -71,10 +85,10 @@ fn main() -> Result<()> {
     util::set_verbose(cli.verbose);
 
     match cli.command {
-        Commands::Workspaces => cmd::cmd_workspaces(),
-        Commands::Schemes { workspace } => cmd::cmd_schemes(workspace),
-        Commands::Configs { workspace } => cmd::cmd_configs(workspace),
-        Commands::Destinations => cmd::cmd_destinations(),
+        Commands::Workspaces { json } => cmd::cmd_workspaces(json),
+        Commands::Schemes { workspace, json } => cmd::cmd_schemes(workspace, json),
+        Commands::Configs { workspace, json } => cmd::cmd_configs(workspace, json),
+        Commands::Destinations { json } => cmd::cmd_destinations(json),
         Commands::Configure(args) => cmd::cmd_configure(args),
         Commands::Reset => cmd::cmd_reset(),
         Commands::Build(args) => cmd::cmd_build(args),

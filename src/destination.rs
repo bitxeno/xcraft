@@ -69,6 +69,16 @@ impl Destination {
         }
     }
 
+    /// Return the spec string that can be passed to `--destination`.
+    /// Inverse of `parse_destination_spec`.
+    pub fn spec(&self) -> String {
+        match self {
+            Destination::Simulator { udid, .. } => format!("simulator:{udid}"),
+            Destination::Device { udid, .. } => format!("device:{udid}"),
+            Destination::MacOS { .. } => "macos".to_string(),
+        }
+    }
+
     /// Check if two destinations refer to the same target (by UDID/arch),
     /// ignoring transient fields like state.
     pub fn same_target(&self, other: &Destination) -> bool {

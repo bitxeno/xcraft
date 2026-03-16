@@ -17,6 +17,7 @@ pub enum Destination {
         udid: String,
         name: String,
         os: String,
+        platform: String,
         /// Runtime state (e.g. "Booted"). Skipped in cache serialization.
         #[serde(skip)]
         state: Option<String>,
@@ -28,6 +29,7 @@ pub enum Destination {
         identifier: String,
         name: String,
         device_type: String,
+        platform: String,
     },
     MacOS {
         arch: String,
@@ -57,11 +59,11 @@ impl Destination {
     /// Build the `-destination` string for xcodebuild.
     pub fn xcodebuild_destination_string(&self) -> String {
         match self {
-            Destination::Simulator { udid, .. } => {
-                format!("platform=iOS Simulator,id={udid}")
+            Destination::Simulator { udid, platform, .. } => {
+                format!("platform={platform} Simulator,id={udid}")
             }
-            Destination::Device { udid, .. } => {
-                format!("platform=iOS,id={udid}")
+            Destination::Device { udid, platform, .. } => {
+                format!("platform={platform},id={udid}")
             }
             Destination::MacOS { arch } => {
                 format!("platform=macOS,arch={arch}")
@@ -160,6 +162,7 @@ fn list_simulators() -> Result<Vec<Destination>> {
                 udid: dev.udid.clone(),
                 name: dev.name.clone(),
                 os: os.clone(),
+                platform: os.split_whitespace().next().unwrap_or("iOS").to_string(),
                 state: dev.state.clone(),
             });
         }
@@ -214,6 +217,7 @@ struct DeviceProperties {
 struct HardwareProperties {
     device_type: Option<String>,
     udid: Option<String>,
+    platform: Option<String>,
 }
 
 fn list_devices() -> Result<Vec<Destination>> {
@@ -242,14 +246,21 @@ fn list_devices() -> Result<Vec<Destination>> {
                 .hardware_properties
                 .udid
                 .unwrap_or_else(|| d.identifier.clone());
+            let device_type = d
+                .hardware_properties
+                .device_type
+                .unwrap_or_else(|| "Unknown".into());
+            let platform = d
+                .hardware_properties
+                .platform
+                .unwrap_or_else(|| "iOS".into());
+
             Destination::Device {
                 udid: traditional_udid,
                 identifier: d.identifier,
                 name: d.device_properties.name,
-                device_type: d
-                    .hardware_properties
-                    .device_type
-                    .unwrap_or_else(|| "Unknown".into()),
+                device_type,
+                platform,
             }
         })
         .collect();
@@ -296,6 +307,7 @@ fn parse_destination_spec(spec: &str) -> Result<Destination> {
             udid: udid.to_string(),
             name: String::new(),
             os: String::new(),
+            platform: String::new(),
             state: None,
         });
     }
@@ -305,6 +317,7 @@ fn parse_destination_spec(spec: &str) -> Result<Destination> {
             identifier: udid.to_string(),
             name: String::new(),
             device_type: String::new(),
+            platform: String::new(),
         });
     }
     bail!("invalid destination spec: {spec}\nExpected: simulator:<udid>, device:<udid>, or macos")

@@ -130,6 +130,12 @@ pub struct BuildOptions<'a> {
 
 /// Run `xcodebuild build` with the given options.
 pub fn build(opts: &BuildOptions) -> Result<()> {
+    // Create a temporary result bundle so that xcodebuild generates a proper
+    // xcactivitylog (needed by xcode-build-server for compile flags).
+    // The bundle is cleaned up when `_result_bundle_dir` is dropped.
+    let _result_bundle_dir = tempfile::TempDir::new()?;
+    let result_bundle_path = _result_bundle_dir.path().join("result.xcresult");
+
     let mut args: Vec<String> = Vec::new();
 
     // Build settings from extra_args (KEY=VALUE).
@@ -146,6 +152,8 @@ pub fn build(opts: &BuildOptions) -> Result<()> {
         opts.configuration.into(),
         "-destination".into(),
         opts.destination_raw.into(),
+        "-resultBundlePath".into(),
+        result_bundle_path.display().to_string(),
     ]);
 
     if let Some(dd) = opts.derived_data {

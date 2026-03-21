@@ -160,6 +160,18 @@ pub fn resolve_and_cache(args: &ResolveArgs, configure: bool) -> Result<Resolved
     state.scheme = Some(scheme_name.clone());
     state.configuration = Some(config.clone());
     state.destination = Some(dest.clone());
+
+    // Auto-update BSP generated_workspace if BSP state was previously configured.
+    if let Some(bsp_state) = &mut state.bsp {
+        let ws_rel = effective_ws
+            .path
+            .strip_prefix(&cache_root)
+            .unwrap_or(&effective_ws.path)
+            .display()
+            .to_string();
+        bsp_state.generated_workspace = Some(ws_rel);
+    }
+
     if let Err(e) = state.save(&cache_root, profile) {
         eprintln!("Warning: failed to save cache: {e}");
     }
@@ -192,7 +204,41 @@ pub fn resolve_and_build(args: &BuildArgs) -> Result<ResolvedBuild> {
     };
     build::build(&build_opts)?;
 
+    // After successful build, update BSP build_root if BSP was previously configured.
+    update_bsp_build_root(&resolved, args.action.derived_data.as_deref());
+
     Ok(resolved)
+}
+
+/// Update BSP build_root in cached state (best-effort, never fails the caller).
+fn update_bsp_build_root(resolved: &ResolvedBuild, derived_data: Option<&str>) {
+    let Ok(cache_root) = cache::CachedState::root() else {
+        return;
+    };
+    let mut state = cache::CachedState::load(&cache_root, None);
+    if state.bsp.is_none() {
+        return;
+    }
+
+    let Ok(entries) = build::get_build_settings(
+        &resolved.effective_ws,
+        &resolved.scheme_name,
+        &resolved.config,
+        None,
+        derived_data,
+    ) else {
+        return;
+    };
+
+    if let Some(symroot) = entries
+        .first()
+        .and_then(|e| e.build_settings.get("SYMROOT"))
+        .and_then(|v| v.as_str())
+        && let Ok(build_root) = std::path::Path::new(symroot).join("../..").canonicalize()
+    {
+        state.bsp.as_mut().unwrap().build_root = Some(build_root.display().to_string());
+        let _ = state.save(&cache_root, None);
+    }
 }
 
 pub fn cmd_build(args: BuildArgs) -> Result<()> {

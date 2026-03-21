@@ -12,6 +12,7 @@ CLI for building and running Xcode projects from the terminal, aiming to simplif
 - Build, clean, and launch in one command
 - Launch on simulators, physical devices, and macOS
 - Pipe build output through [xcbeautify](https://github.com/cpisciotta/xcbeautify) when available
+- Build Server Protocol (BSP) integration — SourceKit-LSP support via [xcode-build-server](https://github.com/SolaWing/xcode-build-server)
 - Designed for headless / CI / agent-driven workflows
 
 ## Install
@@ -78,6 +79,27 @@ xcraft reset --profile sim
 ```
 
 Without `--profile`, the default `.xcraft/state.toml` is used as before.
+
+### Build Server Protocol (BSP)
+
+xcraft integrates with [xcode-build-server](https://github.com/SolaWing/xcode-build-server) to provide SourceKit-LSP with accurate compile commands — enabling code completion, diagnostics, and jump-to-definition in editors without Xcode.
+
+```sh
+# Install xcode-build-server (one-time)
+brew install xcode-build-server
+
+# Generate buildServer.json from current xcraft state
+xcraft bsp configure
+
+# Build at least once to generate compile commands
+xcraft build
+
+# Done — SourceKit-LSP will now use xcraft as the BSP entry point
+```
+
+When you change workspace or scheme via `xcraft configure`, the BSP state is automatically updated. After a successful `xcraft build` or `xcraft launch`, the build root is also kept in sync.
+
+This pairs well with the [Claude Code LSP plugin](https://code.claude.com/docs/en/discover-plugins#code-intelligence), giving Claude full code intelligence for Swift / Objective-C projects.
 
 ## Acknowledgments
 

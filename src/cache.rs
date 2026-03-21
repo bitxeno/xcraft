@@ -14,6 +14,15 @@ fn cache_file(profile: Option<&str>) -> String {
     }
 }
 
+/// BSP-related cached state (build server protocol).
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct BspState {
+    /// Effective .xcworkspace path (relative to project root), for Tuist-generated workspaces.
+    pub generated_workspace: Option<String>,
+    /// DerivedData project root (absolute).
+    pub build_root: Option<String>,
+}
+
 /// Persisted state from the last `launch` invocation.
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct CachedState {
@@ -21,6 +30,7 @@ pub struct CachedState {
     pub scheme: Option<String>,
     pub configuration: Option<String>,
     pub destination: Option<Destination>,
+    pub bsp: Option<BspState>,
 }
 
 impl CachedState {

@@ -1,3 +1,4 @@
+mod bsp;
 mod build;
 mod cache;
 mod cmd;
@@ -82,6 +83,21 @@ enum Commands {
 
     /// Build and run the project
     Launch(cmd::launch::LaunchArgs),
+
+    /// Build Server Protocol integration (xcode-build-server)
+    Bsp {
+        #[command(subcommand)]
+        command: BspCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum BspCommands {
+    /// Generate buildServer.json from current xcraft state
+    #[command(alias = "config")]
+    Configure(cmd::bsp::BspConfigArgs),
+    /// Start BSP server (proxies to xcode-build-server)
+    Serve(cmd::bsp::BspServeArgs),
 }
 
 fn main() -> Result<()> {
@@ -98,5 +114,9 @@ fn main() -> Result<()> {
         Commands::Build(args) => cmd::cmd_build(args),
         Commands::Clean(args) => cmd::cmd_clean(args),
         Commands::Launch(args) => cmd::cmd_launch(args),
+        Commands::Bsp { command } => match command {
+            BspCommands::Configure(args) => cmd::cmd_bsp_config(args),
+            BspCommands::Serve(args) => cmd::cmd_bsp_serve(args),
+        },
     }
 }
